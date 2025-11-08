@@ -195,6 +195,59 @@
         }
     </style>
 </head>
+<script>
+    // --- Minimal helper for toast notifications ---
+    function tsToast(msg, ok = true) {
+        let t = document.getElementById('ts-toast');
+        if (!t) {
+            t = Object.assign(document.createElement('div'), { id: 'ts-toast' });
+            Object.assign(t.style, {
+                position: 'fixed', left: '50%', bottom: '32px', transform: 'translateX(-50%)',
+                padding: '12px 16px', borderRadius: '999px', color: '#fff',
+                background: 'rgba(10,15,26,.9)', border: '1px solid rgba(255,255,255,.12)',
+                boxShadow: '0 10px 24px rgba(0,0,0,.35)', zIndex: 50, fontSize: '14px',
+            });
+            document.head.insertAdjacentHTML('beforeend', '<style>#ts-toast.ok{background:linear-gradient(180deg,var(--ts-primary-300),var(--ts-primary));}#ts-toast.err{background:#b3261e}</style>');
+            document.body.appendChild(t);
+        }
+        t.className = ok ? 'ok' : 'err';
+        t.textContent = msg;
+        t.style.opacity = '1';
+        setTimeout(() => { t.style.transition = 'opacity .6s'; t.style.opacity = '0'; }, 2400);
+    }
+
+
+    // Attach handler after DOM paints
+    window.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('#notify-form');
+        if (!form) return;
+
+
+        const EMAIL_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw3GTG-B8pzFNonezoQKLA9OWFSVfmX8wvtjLSPgi77m46dyegrOy2PBV0NE1RIaOiV/exec'; // <-- paste deployed URL here
+        const SECRET = 'Tradespace'; // optional
+
+
+        form.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const input = form.querySelector('input[type="email"]');
+            const btn = form.querySelector('button');
+            const email = (input?.value || '').trim();
+            if (!email) return;
+            btn.disabled = true; btn.style.opacity = '.7';
+            try {
+                await fetch(EMAIL_ENDPOINT, {
+                    method: 'POST',
+                    body: JSON.stringify({ email, secret: SECRET })
+                });
+                input.value = '';
+                tsToast('Thanks! You\'re on the list.', true);
+            } catch (err) {
+                console.error(err);
+                tsToast('Oops—could not save your email.', false);
+            } finally { btn.disabled = false; btn.style.opacity = '1'; }
+        });
+    });
+</script>
 <body>
 <div class="bg-light"></div>
 
@@ -205,7 +258,7 @@
         <h1>Vi omdefinierar hur </br>svenska företag gör affärer!</h1>
         <p class="tagline">Var först med att veta när vi lanserar</p>
 
-        <form onsubmit="event.preventDefault(); alert('Thanks! We\'ll notify you.');">
+        <form id="notify-form" onsubmit="return false;">
             <div class="input-wrap">
                 <input type="email" placeholder="Ange din e-postadress" required />
                 <button class="btn" type="submit">Meddela mig</button>
